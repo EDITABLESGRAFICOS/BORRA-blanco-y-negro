@@ -12,6 +12,7 @@
     display: flex;
     height: 100vh;
   }
+
   .sidebar {
     width: 300px;
     background: #fff;
@@ -21,6 +22,7 @@
     flex-direction: column;
     gap: 20px;
   }
+
   .main {
     flex: 1;
     display: flex;
@@ -29,21 +31,21 @@
     background: #e9e9e9;
     overflow: hidden;
   }
+
   h2 {
     color: #333;
     font-size: 18px;
     margin-bottom: 10px;
   }
-  .controls {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
+
+  .controls { display: flex; flex-direction: column; gap: 20px; }
+
   input[type="file"] {
     padding: 10px;
     border-radius: 6px;
     border: 1px solid #aaa;
   }
+
   button {
     background: #4CAF50;
     color: white;
@@ -54,73 +56,93 @@
     cursor: pointer;
     transition: 0.3s;
   }
-  button:hover {
-    background: #45a049;
-  }
-  .slider-container {
-    display: flex;
-    flex-direction: column;
-  }
-  input[type="range"] {
-    width: 100%;
-  }
-  label span {
-    font-weight: bold;
-  }
+  button:hover { background: #45a049; }
+
+  .slider-container { display: flex; flex-direction: column; }
+  input[type="range"] { width: 100%; }
+  label span { font-weight: bold; }
+
+  /* ⭐ AJEDREZADO TIPO PHOTOSHOP */
   .canvas-wrapper {
     width: 90%;
     height: 90%;
     overflow: auto;
     border: 1px solid #ccc;
     border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background-size: 20px 20px;
+    background-image:
+      linear-gradient(45deg, #ccc 25%, transparent 25%),
+      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #ccc 75%),
+      linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-color: #eee;
     display: flex;
     justify-content: center;
     align-items: center;
   }
+
   canvas {
     max-width: none;
     max-height: none;
     border-radius: 8px;
+    transition: transform 0.15s ease-in-out;
   }
+
+  /* Controles de zoom */
+  .zoom-btns {
+    display: flex;
+    gap: 10px;
+  }
+
   .zoom-slider {
     display: none;
     flex-direction: column;
+    margin-top: 5px;
   }
 </style>
 </head>
 <body>
-  <div class="sidebar">
-    <h2>Editor Profesional</h2>
 
-    <input type="file" id="upload" accept="image/*">
+<div class="sidebar">
+  <h2>Editor Profesional</h2>
 
-    <div class="controls">
-      <div class="slider-container">
-        <label>Umbral Negro: <span id="blackValue">0</span></label>
-        <input type="range" id="blackThreshold" min="0" max="255" value="0">
-      </div>
-      <div class="slider-container">
-        <label>Umbral Blanco: <span id="whiteValue">255</span></label>
-        <input type="range" id="whiteThreshold" min="0" max="255" value="255">
-      </div>
+  <input type="file" id="upload" accept="image/*">
+
+  <div class="controls">
+    <div class="slider-container">
+      <label>Umbral Negro: <span id="blackValue">0</span></label>
+      <input type="range" id="blackThreshold" min="0" max="255" value="0">
     </div>
-
-    <button id="zoomToggle">🔍 Lupa</button>
-    <div class="zoom-slider" id="zoomControls">
-      <label>Zoom: <span id="zoomValue">1</span>x</label>
-      <input type="range" id="zoomRange" min="1" max="5" value="1" step="0.1">
-    </div>
-
-    <button id="export">Exportar PNG 300dpi</button>
-  </div>
-
-  <div class="main">
-    <div class="canvas-wrapper">
-      <canvas id="canvas"></canvas>
+    <div class="slider-container">
+      <label>Umbral Blanco: <span id="whiteValue">255</span></label>
+      <input type="range" id="whiteThreshold" min="0" max="255" value="255">
     </div>
   </div>
+
+  <!-- ⭐ Botones de zoom -->
+  <div class="zoom-btns">
+    <button id="zoomOut">➖</button>
+    <button id="zoomToggle">🔍</button>
+    <button id="zoomIn">➕</button>
+  </div>
+
+  <!-- Slider de zoom -->
+  <div class="zoom-slider" id="zoomControls">
+    <label>Zoom: <span id="zoomValue">1</span>x</label>
+    <input type="range" id="zoomRange" min="0.2" max="5" value="1" step="0.1">
+  </div>
+
+  <!-- ⭐ Autoajustar imagen -->
+  <button id="fitScreen">Autoajustar Imagen</button>
+
+  <button id="export">Exportar PNG 300dpi</button>
+</div>
+
+<div class="main">
+  <div class="canvas-wrapper">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
 
 <script>
 const upload = document.getElementById('upload');
@@ -135,6 +157,10 @@ const zoomControls = document.getElementById('zoomControls');
 const zoomRange = document.getElementById('zoomRange');
 const zoomValue = document.getElementById('zoomValue');
 
+const zoomIn = document.getElementById('zoomIn');
+const zoomOut = document.getElementById('zoomOut');
+const fitScreenBtn = document.getElementById('fitScreen');
+
 let img = new Image();
 let imgDataOriginal = null;
 let zoomFactor = 1;
@@ -144,13 +170,11 @@ upload.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(event) {
-    img.src = event.target.result;
-  }
+  reader.onload = (event) => img.src = event.target.result;
   reader.readAsDataURL(file);
 });
 
-// Mostrar imagen y guardar datos originales
+// Mostrar imagen y guardar datos
 img.onload = () => {
   canvas.width = img.width;
   canvas.height = img.height;
@@ -158,65 +182,92 @@ img.onload = () => {
   ctx.drawImage(img, 0, 0);
   imgDataOriginal = ctx.getImageData(0, 0, canvas.width, canvas.height);
   updatePreview();
+  fitToScreen();
 };
 
-// Actualizar preview según umbrales
+// Procesado
 function updatePreview() {
   if (!imgDataOriginal) return;
   const imageData = ctx.createImageData(imgDataOriginal);
   const dataOriginal = imgDataOriginal.data;
   const data = imageData.data;
-  const blackThreshold = parseInt(blackSlider.value);
-  const whiteThreshold = parseInt(whiteSlider.value);
+
+  const black = parseInt(blackSlider.value);
+  const white = parseInt(whiteSlider.value);
 
   for (let i = 0; i < data.length; i += 4) {
     const r = dataOriginal[i];
     const g = dataOriginal[i+1];
     const b = dataOriginal[i+2];
 
-    if(r < blackThreshold && g < blackThreshold && b < blackThreshold){
-      data[i+3] = 0;
-    }
-    else if(r > whiteThreshold && g > whiteThreshold && b > whiteThreshold){
-      data[i+3] = 0;
-    }
-    else{
-      data[i] = r;
-      data[i+1] = g;
-      data[i+2] = b;
-      data[i+3] = 255;
+    if (r < black && g < black && b < black) data[i+3] = 0;
+    else if (r > white && g > white && b > white) data[i+3] = 0;
+    else {
+      data[i] = r; data[i+1] = g; data[i+2] = b; data[i+3] = 255;
     }
   }
   ctx.putImageData(imageData, 0, 0);
 }
 
-// Escucha cambios en sliders
+// Sliders
 blackSlider.addEventListener('input', () => {
   blackValue.textContent = blackSlider.value;
   updatePreview();
 });
-
 whiteSlider.addEventListener('input', () => {
   whiteValue.textContent = whiteSlider.value;
   updatePreview();
 });
 
-// Toggle zoom controls
+// ⭐ Mostrar/ocultar controles
 zoomToggle.addEventListener('click', () => {
   zoomControls.style.display = zoomControls.style.display === 'flex' ? 'none' : 'flex';
 });
 
-// Controlar zoom con slider
+// ⭐ Zoom deslizable
 zoomRange.addEventListener('input', () => {
   zoomFactor = parseFloat(zoomRange.value);
   zoomValue.textContent = zoomFactor.toFixed(1);
-  canvas.style.transform = `scale(${zoomFactor})`;
-  canvas.style.transformOrigin = 'top left';
+  applyZoom();
 });
 
+// ⭐ Zoom +
+zoomIn.addEventListener('click', () => {
+  zoomFactor = Math.min(5, zoomFactor + 0.1);
+  zoomRange.value = zoomFactor;
+  zoomValue.textContent = zoomFactor.toFixed(1);
+  applyZoom();
+});
+
+// ⭐ Zoom -
+zoomOut.addEventListener('click', () => {
+  zoomFactor = Math.max(0.2, zoomFactor - 0.1);
+  zoomRange.value = zoomFactor;
+  zoomValue.textContent = zoomFactor.toFixed(1);
+  applyZoom();
+});
+
+// Aplicar zoom real
+function applyZoom() {
+  canvas.style.transform = `scale(${zoomFactor})`;
+  canvas.style.transformOrigin = "center center";
+}
+
+// ⭐ Autoajustar al tamaño del visor
+function fitToScreen() {
+  const wrapper = document.querySelector('.canvas-wrapper');
+  const scaleW = wrapper.clientWidth / canvas.width;
+  const scaleH = wrapper.clientHeight / canvas.height;
+  zoomFactor = Math.min(scaleW, scaleH);
+  zoomRange.value = zoomFactor;
+  zoomValue.textContent = zoomFactor.toFixed(1);
+  applyZoom();
+}
+
+fitScreenBtn.addEventListener('click', fitToScreen);
+
 // Exportar PNG
-const exportBtn = document.getElementById('export');
-exportBtn.addEventListener('click', () => {
+document.getElementById('export').addEventListener('click', () => {
   updatePreview();
   const scale = 2;
   const exportCanvas = document.createElement('canvas');
@@ -224,8 +275,7 @@ exportBtn.addEventListener('click', () => {
   exportCanvas.height = canvas.height * scale;
   const exportCtx = exportCanvas.getContext('2d');
   exportCtx.imageSmoothingEnabled = false;
-  exportCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height,
-                               0, 0, exportCanvas.width, exportCanvas.height);
+  exportCtx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
 
   const link = document.createElement('a');
   link.download = `imagen_procesada_${Date.now()}.png`;
@@ -233,5 +283,7 @@ exportBtn.addEventListener('click', () => {
   link.click();
 });
 </script>
+
 </body>
 </html>
+
