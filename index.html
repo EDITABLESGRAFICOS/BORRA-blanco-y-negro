@@ -5,12 +5,10 @@
 <title>Editor Profesional - 300 DPI reales</title>
 
 <style>
-/* ======= ESTILOS GENERALES ======= */
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: Arial, sans-serif;
   background: #f0f0f0;
   margin: 0;
-  padding: 0;
   display: flex;
   height: 100vh;
 }
@@ -22,7 +20,7 @@ body {
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .main {
@@ -31,17 +29,15 @@ body {
   align-items: center;
   justify-content: center;
   background: #e9e9e9;
-  overflow: hidden;
 }
 
 .canvas-wrapper {
   width: 90%;
   height: 90%;
   overflow: auto;
-  border: 1px solid #ccc;
   border-radius: 8px;
+  border: 1px solid #ccc;
 
-  /* ⭐ Ajedrezado tipo Photoshop */
   background-size: 20px 20px;
   background-image:
     linear-gradient(45deg, #ccc 25%, transparent 25%),
@@ -56,264 +52,193 @@ body {
 }
 
 canvas {
-  max-width: none;
-  max-height: none;
-  transition: transform 0.15s ease-in-out;
+  transition: transform 0.15s ease;
 }
-
-/* Zoom buttons */
-.zoom-btns { display: flex; gap: 10px; }
-.zoom-slider { display: none; flex-direction: column; }
 
 button {
   background: #4CAF50;
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 12px 24px;
-  font-size: 16px;
+  padding: 10px;
+  font-size: 15px;
   cursor: pointer;
 }
 button:hover { background: #45a049; }
 
+.zoom-btns { display: flex; gap: 10px; }
+.zoom-slider { display: none; flex-direction: column; }
 </style>
 </head>
 
 <body>
 
-<!-- ==================== PANEL LATERAL ===================== -->
 <div class="sidebar">
   <h2>Editor Profesional</h2>
 
   <input type="file" id="upload" accept="image/*">
 
-  <div>
-    <label>Umbral Negro: <span id="blackValue">0</span></label>
-    <input type="range" id="blackThreshold" min="0" max="255" value="0">
-  </div>
+  <label>Umbral Negro: <span id="blackValue">0</span></label>
+  <input type="range" id="blackThreshold" min="0" max="255" value="0">
 
-  <div>
-    <label>Umbral Blanco: <span id="whiteValue">255</span></label>
-    <input type="range" id="whiteThreshold" min="0" max="255" value="255">
-  </div>
+  <label>Umbral Blanco: <span id="whiteValue">255</span></label>
+  <input type="range" id="whiteThreshold" min="0" max="255" value="255">
 
-  <!-- Botones zoom -->
   <div class="zoom-btns">
     <button id="zoomOut">➖</button>
     <button id="zoomToggle">🔍</button>
     <button id="zoomIn">➕</button>
   </div>
 
-  <!-- Slider zoom -->
   <div class="zoom-slider" id="zoomControls">
     <label>Zoom: <span id="zoomValue">1</span>x</label>
-    <input type="range" id="zoomRange" min="0.2" max="5" value="1" step="0.1">
+    <input type="range" id="zoomRange" min="0.2" max="5" step="0.1" value="1">
   </div>
 
-  <!-- Autoajuste -->
   <button id="fitScreen">Autoajustar Imagen</button>
-
-  <!-- EXPORT -->
-  <button id="export">Exportar PNG 300 dpi reales</button>
+  <button id="export">Exportar PNG 300 DPI reales</button>
 </div>
 
-
-<!-- =================== VISUALIZADOR =================== -->
 <div class="main">
   <div class="canvas-wrapper">
     <canvas id="canvas"></canvas>
   </div>
 </div>
 
-
 <script>
-/* ========= VARIABLES ======== */
 const upload = document.getElementById("upload");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let img = new Image();
-let imgDataOriginal = null;
+let originalData = null;
+let zoom = 1;
 
-let zoomFactor = 1;
-
-/* ========= SUBIR IMAGEN ========= */
-upload.addEventListener("change", e => {
+/* ===== CARGA ===== */
+upload.onchange = e => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => (img.src = ev.target.result);
-  reader.readAsDataURL(file);
-});
+  const r = new FileReader();
+  r.onload = ev => img.src = ev.target.result;
+  r.readAsDataURL(file);
+};
 
 img.onload = () => {
   canvas.width = img.width;
   canvas.height = img.height;
   ctx.drawImage(img, 0, 0);
-  imgDataOriginal = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  updatePreview();
-  fitToScreen();
+  originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  update();
+  fit();
 };
 
+/* ===== UMBRALES ===== */
+const b = document.getElementById("blackThreshold");
+const w = document.getElementById("whiteThreshold");
 
-/* ========= PROCESADO DE UMBRALES ========= */
-const blackSlider = document.getElementById("blackThreshold");
-const whiteSlider = document.getElementById("whiteThreshold");
-
-blackSlider.oninput = () => {
-  document.getElementById("blackValue").textContent = blackSlider.value;
-  updatePreview();
-};
-whiteSlider.oninput = () => {
-  document.getElementById("whiteValue").textContent = whiteSlider.value;
-  updatePreview();
+b.oninput = w.oninput = () => {
+  blackValue.textContent = b.value;
+  whiteValue.textContent = w.value;
+  update();
 };
 
-function updatePreview() {
-  if (!imgDataOriginal) return;
+function update() {
+  if (!originalData) return;
+  const out = ctx.createImageData(originalData);
+  const s = originalData.data;
+  const d = out.data;
+  const bt = +b.value;
+  const wt = +w.value;
 
-  const imageData = ctx.createImageData(imgDataOriginal);
-  const src = imgDataOriginal.data;
-  const dst = imageData.data;
-
-  const bT = parseInt(blackSlider.value);
-  const wT = parseInt(whiteSlider.value);
-
-  for (let i = 0; i < src.length; i += 4) {
-    const r = src[i], g = src[i+1], b = src[i+2];
-
-    if (r < bT && g < bT && b < bT) dst[i+3] = 0;
-    else if (r > wT && g > wT && b > wT) dst[i+3] = 0;
-    else {
-      dst[i] = r;
-      dst[i+1] = g;
-      dst[i+2] = b;
-      dst[i+3] = 255;
+  for (let i = 0; i < s.length; i += 4) {
+    if (s[i] < bt && s[i+1] < bt && s[i+2] < bt) {
+      d[i+3] = 0;
+    } else if (s[i] > wt && s[i+1] > wt && s[i+2] > wt) {
+      d[i+3] = 0;
+    } else {
+      d[i]=s[i]; d[i+1]=s[i+1]; d[i+2]=s[i+2]; d[i+3]=255;
     }
   }
-  ctx.putImageData(imageData, 0, 0);
+  ctx.putImageData(out,0,0);
 }
 
-
-/* ========= ZOOM ========= */
-const zoomToggle = document.getElementById("zoomToggle");
-const zoomControls = document.getElementById("zoomControls");
-const zoomRange = document.getElementById("zoomRange");
-const zoomValue = document.getElementById("zoomValue");
-
-zoomToggle.onclick = () => {
+/* ===== ZOOM ===== */
+zoomToggle.onclick = () =>
   zoomControls.style.display =
     zoomControls.style.display === "flex" ? "none" : "flex";
-};
 
-zoomRange.oninput = () => {
-  zoomFactor = parseFloat(zoomRange.value);
-  zoomValue.textContent = zoomFactor.toFixed(1);
-  applyZoom();
-};
+zoomRange.oninput = () => setZoom(+zoomRange.value);
+zoomIn.onclick = () => setZoom(Math.min(5, zoom + 0.1));
+zoomOut.onclick = () => setZoom(Math.max(0.2, zoom - 0.1));
 
-document.getElementById("zoomIn").onclick = () => {
-  zoomFactor = Math.min(5, zoomFactor + 0.1);
-  zoomRange.value = zoomFactor;
-  zoomValue.textContent = zoomFactor.toFixed(1);
-  applyZoom();
-};
-
-document.getElementById("zoomOut").onclick = () => {
-  zoomFactor = Math.max(0.2, zoomFactor - 0.1);
-  zoomRange.value = zoomFactor;
-  zoomValue.textContent = zoomFactor.toFixed(1);
-  applyZoom();
-};
-
-function applyZoom() {
-  canvas.style.transform = `scale(${zoomFactor})`;
-  canvas.style.transformOrigin = "center center";
+function setZoom(z){
+  zoom = z;
+  zoomRange.value = zoom;
+  zoomValue.textContent = zoom.toFixed(1);
+  canvas.style.transform = `scale(${zoom})`;
 }
 
-
-/* ========= AUTOAJUSTE ========= */
-document.getElementById("fitScreen").onclick = fitToScreen;
-
-function fitToScreen() {
-  const wrapper = document.querySelector(".canvas-wrapper");
-  const scaleW = wrapper.clientWidth / canvas.width;
-  const scaleH = wrapper.clientHeight / canvas.height;
-  zoomFactor = Math.min(scaleW, scaleH);
-  zoomRange.value = zoomFactor;
-  zoomValue.textContent = zoomFactor.toFixed(1);
-  applyZoom();
+/* ===== AUTO FIT ===== */
+function fit(){
+  const w = document.querySelector(".canvas-wrapper");
+  setZoom(Math.min(w.clientWidth/canvas.width, w.clientHeight/canvas.height));
 }
+fitScreen.onclick = fit;
 
-
-/* ========= EXPORTAR 300 DPI REALES ========= */
-
-function inject300dpi(pngBuffer) {
+/* ===== PNG 300 DPI REAL ===== */
+function inject300dpi(png) {
   const dpi = 300;
-  const pixelsPerMeter = Math.round(dpi / 0.0254);
+  const ppm = Math.round(dpi / 0.0254);
 
-  const pHYsChunk = new Uint8Array([
-    0x00,0x00,0x0B,0x13,
-    0x00,0x00,0x0B,0x13,
-    0x01
-  ]);
-
-  function crc32(buf) {
-    let c = ~0, l = buf.length;
-    for (let n = 0; n < l; n++) {
-      c ^= buf[n];
-      for (let k = 0; k < 8; k++) {
-        c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : (c >>> 1);
-      }
+  function crc32(buf){
+    let c = ~0;
+    for (let i=0;i<buf.length;i++){
+      c ^= buf[i];
+      for (let k=0;k<8;k++)
+        c = c & 1 ? 0xEDB88320 ^ (c>>>1) : c>>>1;
     }
-    return ~c >>> 0;
+    return (~c)>>>0;
   }
 
+  let o = 8;
+  const len = (png[o]<<24)|(png[o+1]<<16)|(png[o+2]<<8)|png[o+3];
+  const endIHDR = o + 12 + len;
+
+  const data = new Uint8Array([
+    ppm>>24,ppm>>16,ppm>>8,ppm,
+    ppm>>24,ppm>>16,ppm>>8,ppm,
+    1
+  ]);
+
   const type = new TextEncoder().encode("pHYs");
-  const full = new Uint8Array(type.length + pHYsChunk.length);
-  full.set(type, 0);
-  full.set(pHYsChunk, type.length);
+  const crc = crc32(new Uint8Array([...type,...data]));
 
-  const crc = crc32(full);
-  const chunk = new Uint8Array(4 + full.length + 4);
+  const chunk = new Uint8Array([
+    0,0,0,9,
+    ...type,
+    ...data,
+    crc>>24,crc>>16,crc>>8,crc
+  ]);
 
-  chunk[0] = 0x00;
-  chunk[1] = 0x00;
-  chunk[2] = 0x00;
-  chunk[3] = pHYsChunk.length;
-
-  chunk.set(full, 4);
-
-  chunk[chunk.length-4] = (crc >>> 24) & 0xFF;
-  chunk[chunk.length-3] = (crc >>> 16) & 0xFF;
-  chunk[chunk.length-2] = (crc >>> 8) & 0xFF;
-  chunk[chunk.length-1] = crc & 0xFF;
-
-  const signature = pngBuffer.slice(0, 8);
-  const rest = pngBuffer.slice(8);
-
-  return new Uint8Array([...signature, ...chunk, ...rest]);
+  return new Uint8Array([
+    ...png.slice(0,endIHDR),
+    ...chunk,
+    ...png.slice(endIHDR)
+  ]);
 }
 
+/* ===== EXPORT ===== */
+export.onclick = async () => {
+  update();
+  const blob = await new Promise(r=>canvas.toBlob(r,"image/png"));
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const out = inject300dpi(buf);
 
-document.getElementById("export").onclick = async () => {
-  updatePreview();
-
-  const blob = await new Promise(resolve =>
-    canvas.toBlob(b => resolve(b), "image/png")
-  );
-
-  const buffer = new Uint8Array(await blob.arrayBuffer());
-  const finalPNG = inject300dpi(buffer);
-
-  const outBlob = new Blob([finalPNG], { type: "image/png" });
-
-  const link = document.createElement("a");
-  link.download = `imagen_300dpi_${Date.now()}.png`;
-  link.href = URL.createObjectURL(outBlob);
-  link.click();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([out],{type:"image/png"}));
+  a.download = `imagen_300dpi_${Date.now()}.png`;
+  a.click();
 };
-
 </script>
 </body>
 </html>
