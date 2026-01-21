@@ -1,256 +1,97 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Editor Profesional – 300 DPI reales</title>
-
-<style>
-body {
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  font-family: Arial, sans-serif;
-  background: #f0f0f0;
-}
-
-.sidebar {
-  width: 300px;
-  background: #fff;
-  padding: 20px;
-  box-shadow: 2px 0 5px rgba(0,0,0,.1);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.main {
-  flex: 1;
-  background: #e9e9e9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.canvas-wrapper {
-  width: 90%;
-  height: 90%;
-  overflow: auto;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-
-  background-size: 20px 20px;
-  background-image:
-    linear-gradient(45deg, #ccc 25%, transparent 25%),
-    linear-gradient(-45deg, #ccc 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #ccc 75%),
-    linear-gradient(-45deg, transparent 75%, #ccc 75%);
-  background-color: #eee;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-canvas {
-  transition: transform .15s ease;
-}
-
-button {
-  background: #4CAF50;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 15px;
-  cursor: pointer;
-}
-button:hover { background: #45a049; }
-
-.zoom-btns { display: flex; gap: 8px; }
-.zoom-slider { display: none; flex-direction: column; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Remover fondo negro o blanco</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#111; color:#eee; padding:20px }
+    canvas { border:1px solid #444; margin-top:10px; max-width:45%; }
+    .canvas-container { display:flex; gap:10px; flex-wrap:wrap; }
+    button, input, select { margin-top:10px; padding:8px }
+    .label-canvas { text-align:center; margin-top:5px; }
+  </style>
 </head>
-
 <body>
 
-<div class="sidebar">
-  <h2>Editor Profesional</h2>
+<h2>Quitar fondo negro o blanco (PNG export) - Preview Antes/Después</h2>
+<input type="file" id="upload" accept="image/png,image/jpeg" />
+<br>
+<select id="mode">
+  <option value="black">Quitar negro</option>
+  <option value="white">Quitar blanco</option>
+</select>
+<br>
+<label>Tolerancia: <input type="range" id="tolerance" min="0" max="80" value="20" /></label>
+<br>
+<button id="process">Procesar</button>
+<button id="download">Descargar PNG</button>
 
-  <input type="file" id="upload" accept="image/*">
-
-  <label>Umbral Negro: <span id="blackValue">0</span></label>
-  <input type="range" id="blackThreshold" min="0" max="255" value="0">
-
-  <label>Umbral Blanco: <span id="whiteValue">255</span></label>
-  <input type="range" id="whiteThreshold" min="0" max="255" value="255">
-
-  <div class="zoom-btns">
-    <button id="zoomOut">➖</button>
-    <button id="zoomToggle">🔍</button>
-    <button id="zoomIn">➕</button>
+<div class="canvas-container">
+  <div>
+    <canvas id="canvas-before"></canvas>
+    <div class="label-canvas">Antes</div>
   </div>
-
-  <div class="zoom-slider" id="zoomControls">
-    <label>Zoom: <span id="zoomValue">1</span>x</label>
-    <input type="range" id="zoomRange" min="0.2" max="5" step="0.1" value="1">
-  </div>
-
-  <button id="fitScreen">Autoajustar Imagen</button>
-  <button id="export">Exportar PNG 300 DPI reales</button>
-</div>
-
-<div class="main">
-  <div class="canvas-wrapper">
-    <canvas id="canvas"></canvas>
+  <div>
+    <canvas id="canvas-after"></canvas>
+    <div class="label-canvas">Después</div>
   </div>
 </div>
 
 <script>
-const upload = document.getElementById("upload");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const upload = document.getElementById('upload');
+const canvasBefore = document.getElementById('canvas-before');
+const ctxBefore = canvasBefore.getContext('2d');
+const canvasAfter = document.getElementById('canvas-after');
+const ctxAfter = canvasAfter.getContext('2d');
+const toleranceInput = document.getElementById('tolerance');
+const modeSelect = document.getElementById('mode');
+let img = new Image();
 
-const img = new Image();
-img.crossOrigin = "anonymous";
-
-let originalData = null;
-let zoom = 1;
-
-/* ========= CARGA IMAGEN (FIX CRÍTICO) ========= */
-img.onload = () => {
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
-
-  originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  updatePreview();
-  fitToScreen();
-};
-
-upload.onchange = e => {
+upload.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
-
   const reader = new FileReader();
-  reader.onload = ev => img.src = ev.target.result;
+  reader.onload = ev => { img.src = ev.target.result; };
   reader.readAsDataURL(file);
+});
+
+img.onload = () => {
+  canvasBefore.width = canvasAfter.width = img.width;
+  canvasBefore.height = canvasAfter.height = img.height;
+  ctxBefore.drawImage(img, 0, 0);
+  ctxAfter.drawImage(img, 0, 0);
 };
 
-/* ========= UMBRALES ========= */
-const blackSlider = document.getElementById("blackThreshold");
-const whiteSlider = document.getElementById("whiteThreshold");
+document.getElementById('process').onclick = () => {
+  const tolerance = Number(toleranceInput.value);
+  const mode = modeSelect.value;
+  const imageData = ctxBefore.getImageData(0, 0, canvasBefore.width, canvasBefore.height);
+  const data = imageData.data;
 
-blackSlider.oninput = whiteSlider.oninput = () => {
-  blackValue.textContent = blackSlider.value;
-  whiteValue.textContent = whiteSlider.value;
-  updatePreview();
-};
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
 
-function updatePreview() {
-  if (!originalData) return;
-
-  const out = ctx.createImageData(originalData);
-  const s = originalData.data;
-  const d = out.data;
-
-  const bT = +blackSlider.value;
-  const wT = +whiteSlider.value;
-
-  for (let i = 0; i < s.length; i += 4) {
-    const r = s[i], g = s[i+1], b = s[i+2];
-
-    if (r < bT && g < bT && b < bT) {
-      d[i+3] = 0;
-    } else if (r > wT && g > wT && b > wT) {
-      d[i+3] = 0;
+    if (mode === 'black') {
+      if (r < tolerance && g < tolerance && b < tolerance) {
+        data[i + 3] = 0;
+      }
     } else {
-      d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=255;
+      if (r > 255 - tolerance && g > 255 - tolerance && b > 255 - tolerance) {
+        data[i + 3] = 0;
+      }
     }
   }
-  ctx.putImageData(out, 0, 0);
-}
 
-/* ========= ZOOM ========= */
-zoomToggle.onclick = () =>
-  zoomControls.style.display =
-    zoomControls.style.display === "flex" ? "none" : "flex";
+  ctxAfter.putImageData(imageData, 0, 0);
+};
 
-zoomRange.oninput = () => setZoom(+zoomRange.value);
-zoomIn.onclick  = () => setZoom(Math.min(5, zoom + 0.1));
-zoomOut.onclick = () => setZoom(Math.max(0.2, zoom - 0.1));
-
-function setZoom(z) {
-  zoom = z;
-  zoomRange.value = zoom;
-  zoomValue.textContent = zoom.toFixed(1);
-  canvas.style.transform = `scale(${zoom})`;
-  canvas.style.transformOrigin = "center center";
-}
-
-/* ========= AUTOAJUSTE ========= */
-function fitToScreen() {
-  const wrap = document.querySelector(".canvas-wrapper");
-  setZoom(Math.min(wrap.clientWidth / canvas.width,
-                   wrap.clientHeight / canvas.height));
-}
-fitScreen.onclick = fitToScreen;
-
-/* ========= PNG 300 DPI REAL (pHYs OK) ========= */
-function inject300dpi(png) {
-  const dpi = 300;
-  const ppm = Math.round(dpi / 0.0254);
-
-  function crc32(buf) {
-    let c = ~0;
-    for (let i = 0; i < buf.length; i++) {
-      c ^= buf[i];
-      for (let k = 0; k < 8; k++)
-        c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-    }
-    return (~c) >>> 0;
-  }
-
-  let o = 8;
-  const len = (png[o]<<24)|(png[o+1]<<16)|(png[o+2]<<8)|png[o+3];
-  const ihdrEnd = o + 12 + len;
-
-  const data = new Uint8Array([
-    ppm>>24, ppm>>16, ppm>>8, ppm,
-    ppm>>24, ppm>>16, ppm>>8, ppm,
-    1
-  ]);
-
-  const type = new TextEncoder().encode("pHYs");
-  const crc = crc32(new Uint8Array([...type, ...data]));
-
-  const chunk = new Uint8Array([
-    0,0,0,9,
-    ...type,
-    ...data,
-    crc>>24, crc>>16, crc>>8, crc
-  ]);
-
-  return new Uint8Array([
-    ...png.slice(0, ihdrEnd),
-    ...chunk,
-    ...png.slice(ihdrEnd)
-  ]);
-}
-
-/* ========= EXPORT ========= */
-export.onclick = async () => {
-  updatePreview();
-
-  const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
-  const buf = new Uint8Array(await blob.arrayBuffer());
-  const out = inject300dpi(buf);
-
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([out], {type:"image/png"}));
-  a.download = `imagen_300dpi_${Date.now()}.png`;
-  a.click();
+document.getElementById('download').onclick = () => {
+  const link = document.createElement('a');
+  link.download = 'resultado.png';
+  link.href = canvasAfter.toDataURL('image/png');
+  link.click();
 };
 </script>
 
