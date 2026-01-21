@@ -2,41 +2,41 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Editor Profesional - 300 DPI reales</title>
+<title>Editor Profesional – 300 DPI reales</title>
 
 <style>
 body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
   font-family: Arial, sans-serif;
   background: #f0f0f0;
-  margin: 0;
-  display: flex;
-  height: 100vh;
 }
 
 .sidebar {
   width: 300px;
   background: #fff;
   padding: 20px;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  box-shadow: 2px 0 5px rgba(0,0,0,.1);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .main {
   flex: 1;
+  background: #e9e9e9;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e9e9e9;
 }
 
 .canvas-wrapper {
   width: 90%;
   height: 90%;
   overflow: auto;
-  border-radius: 8px;
   border: 1px solid #ccc;
+  border-radius: 8px;
 
   background-size: 20px 20px;
   background-image:
@@ -47,17 +47,17 @@ body {
   background-color: #eee;
 
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
 }
 
 canvas {
-  transition: transform 0.15s ease;
+  transition: transform .15s ease;
 }
 
 button {
   background: #4CAF50;
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 8px;
   padding: 10px;
@@ -66,7 +66,7 @@ button {
 }
 button:hover { background: #45a049; }
 
-.zoom-btns { display: flex; gap: 10px; }
+.zoom-btns { display: flex; gap: 8px; }
 .zoom-slider { display: none; flex-direction: column; }
 </style>
 </head>
@@ -110,135 +110,149 @@ const upload = document.getElementById("upload");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-let img = new Image();
+const img = new Image();
+img.crossOrigin = "anonymous";
+
 let originalData = null;
 let zoom = 1;
 
-/* ===== CARGA ===== */
+/* ========= CARGA IMAGEN (FIX CRÍTICO) ========= */
+img.onload = () => {
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+
+  originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  updatePreview();
+  fitToScreen();
+};
+
 upload.onchange = e => {
   const file = e.target.files[0];
   if (!file) return;
-  const r = new FileReader();
-  r.onload = ev => img.src = ev.target.result;
-  r.readAsDataURL(file);
+
+  const reader = new FileReader();
+  reader.onload = ev => img.src = ev.target.result;
+  reader.readAsDataURL(file);
 };
 
-img.onload = () => {
-  canvas.width = img.width;
-  canvas.height = img.height;
-  ctx.drawImage(img, 0, 0);
-  originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  update();
-  fit();
+/* ========= UMBRALES ========= */
+const blackSlider = document.getElementById("blackThreshold");
+const whiteSlider = document.getElementById("whiteThreshold");
+
+blackSlider.oninput = whiteSlider.oninput = () => {
+  blackValue.textContent = blackSlider.value;
+  whiteValue.textContent = whiteSlider.value;
+  updatePreview();
 };
 
-/* ===== UMBRALES ===== */
-const b = document.getElementById("blackThreshold");
-const w = document.getElementById("whiteThreshold");
-
-b.oninput = w.oninput = () => {
-  blackValue.textContent = b.value;
-  whiteValue.textContent = w.value;
-  update();
-};
-
-function update() {
+function updatePreview() {
   if (!originalData) return;
+
   const out = ctx.createImageData(originalData);
   const s = originalData.data;
   const d = out.data;
-  const bt = +b.value;
-  const wt = +w.value;
+
+  const bT = +blackSlider.value;
+  const wT = +whiteSlider.value;
 
   for (let i = 0; i < s.length; i += 4) {
-    if (s[i] < bt && s[i+1] < bt && s[i+2] < bt) {
+    const r = s[i], g = s[i+1], b = s[i+2];
+
+    if (r < bT && g < bT && b < bT) {
       d[i+3] = 0;
-    } else if (s[i] > wt && s[i+1] > wt && s[i+2] > wt) {
+    } else if (r > wT && g > wT && b > wT) {
       d[i+3] = 0;
     } else {
-      d[i]=s[i]; d[i+1]=s[i+1]; d[i+2]=s[i+2]; d[i+3]=255;
+      d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=255;
     }
   }
-  ctx.putImageData(out,0,0);
+  ctx.putImageData(out, 0, 0);
 }
 
-/* ===== ZOOM ===== */
+/* ========= ZOOM ========= */
 zoomToggle.onclick = () =>
   zoomControls.style.display =
     zoomControls.style.display === "flex" ? "none" : "flex";
 
 zoomRange.oninput = () => setZoom(+zoomRange.value);
-zoomIn.onclick = () => setZoom(Math.min(5, zoom + 0.1));
+zoomIn.onclick  = () => setZoom(Math.min(5, zoom + 0.1));
 zoomOut.onclick = () => setZoom(Math.max(0.2, zoom - 0.1));
 
-function setZoom(z){
+function setZoom(z) {
   zoom = z;
   zoomRange.value = zoom;
   zoomValue.textContent = zoom.toFixed(1);
   canvas.style.transform = `scale(${zoom})`;
+  canvas.style.transformOrigin = "center center";
 }
 
-/* ===== AUTO FIT ===== */
-function fit(){
-  const w = document.querySelector(".canvas-wrapper");
-  setZoom(Math.min(w.clientWidth/canvas.width, w.clientHeight/canvas.height));
+/* ========= AUTOAJUSTE ========= */
+function fitToScreen() {
+  const wrap = document.querySelector(".canvas-wrapper");
+  setZoom(Math.min(wrap.clientWidth / canvas.width,
+                   wrap.clientHeight / canvas.height));
 }
-fitScreen.onclick = fit;
+fitScreen.onclick = fitToScreen;
 
-/* ===== PNG 300 DPI REAL ===== */
+/* ========= PNG 300 DPI REAL (pHYs OK) ========= */
 function inject300dpi(png) {
   const dpi = 300;
   const ppm = Math.round(dpi / 0.0254);
 
-  function crc32(buf){
+  function crc32(buf) {
     let c = ~0;
-    for (let i=0;i<buf.length;i++){
+    for (let i = 0; i < buf.length; i++) {
       c ^= buf[i];
-      for (let k=0;k<8;k++)
-        c = c & 1 ? 0xEDB88320 ^ (c>>>1) : c>>>1;
+      for (let k = 0; k < 8; k++)
+        c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
     }
-    return (~c)>>>0;
+    return (~c) >>> 0;
   }
 
   let o = 8;
   const len = (png[o]<<24)|(png[o+1]<<16)|(png[o+2]<<8)|png[o+3];
-  const endIHDR = o + 12 + len;
+  const ihdrEnd = o + 12 + len;
 
   const data = new Uint8Array([
-    ppm>>24,ppm>>16,ppm>>8,ppm,
-    ppm>>24,ppm>>16,ppm>>8,ppm,
+    ppm>>24, ppm>>16, ppm>>8, ppm,
+    ppm>>24, ppm>>16, ppm>>8, ppm,
     1
   ]);
 
   const type = new TextEncoder().encode("pHYs");
-  const crc = crc32(new Uint8Array([...type,...data]));
+  const crc = crc32(new Uint8Array([...type, ...data]));
 
   const chunk = new Uint8Array([
     0,0,0,9,
     ...type,
     ...data,
-    crc>>24,crc>>16,crc>>8,crc
+    crc>>24, crc>>16, crc>>8, crc
   ]);
 
   return new Uint8Array([
-    ...png.slice(0,endIHDR),
+    ...png.slice(0, ihdrEnd),
     ...chunk,
-    ...png.slice(endIHDR)
+    ...png.slice(ihdrEnd)
   ]);
 }
 
-/* ===== EXPORT ===== */
+/* ========= EXPORT ========= */
 export.onclick = async () => {
-  update();
-  const blob = await new Promise(r=>canvas.toBlob(r,"image/png"));
+  updatePreview();
+
+  const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
   const buf = new Uint8Array(await blob.arrayBuffer());
   const out = inject300dpi(buf);
 
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([out],{type:"image/png"}));
+  a.href = URL.createObjectURL(new Blob([out], {type:"image/png"}));
   a.download = `imagen_300dpi_${Date.now()}.png`;
   a.click();
 };
 </script>
+
 </body>
 </html>
