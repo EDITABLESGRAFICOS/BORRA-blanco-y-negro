@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Remover fondo negro o blanco</title>
+  <title>TRANSPIFY 2.0</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,171 +13,174 @@
       flex-direction: column;
       align-items: center;
     }
-    h2 {
+
+    /* ===== App Title ===== */
+    .app-title {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .app-title h1 {
+      margin: 0;
       color: #00ff99;
-      margin-bottom: 20px;
+      letter-spacing: 2px;
     }
-    input, select, button, label {
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
+
+    .app-title small {
+      display: block;
+      margin-top: 6px;
+      opacity: 0.6;
     }
-    input, select {
-      width: 200px;
+
+    /* ===== Controls ===== */
+    .controls {
+      width: 400px;
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
     }
-    button {
+
+    .upload-box input {
+      display: none;
+    }
+
+    .upload-btn {
+      display: block;
+      padding: 14px;
+      border-radius: 10px;
+      background: #2a2a2a;
+      border: 1px dashed #444;
       cursor: pointer;
-      background-color: #00ff99;
-      color: #111;
-      font-weight: bold;
-      transition: 0.3s;
+      font-weight: 600;
+      text-align: center;
+      transition: .2s;
     }
+
+    .upload-btn:hover {
+      background: #333;
+      border-color: #666;
+    }
+
+    /* ===== Options: lado a lado ===== */
+    .options {
+      display: flex;
+      gap: 12px;
+    }
+
+    .field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 13px;
+      opacity: .8;
+    }
+
+    select,
+    input[type="range"] {
+      width: 100%;
+    }
+
+    /* ===== Actions ===== */
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.primary {
+      background: #00c853;
+      color: #000;
+    }
+
+    button.secondary {
+      background: #2a2a2a;
+      color: #fff;
+    }
+
     button:hover {
-      background-color: #00cc7a;
+      filter: brightness(1.1);
     }
+
+    /* ===== Canvas ===== */
     .canvas-container {
       display: flex;
       gap: 20px;
-      margin-top: 20px;
+      margin-top: 28px;
     }
+
     canvas {
-      border: 2px solid #444;
+      border: 2px solid #00ff99;
       max-width: 400px;
-      /* Patrón de transparencia con menor opacidad */
-      background-image: linear-gradient(45deg, rgba(204,204,204,0.3) 25%, transparent 25%),
-                        linear-gradient(-45deg, rgba(204,204,204,0.3) 25%, transparent 25%),
-                        linear-gradient(45deg, transparent 75%, rgba(204,204,204,0.3) 75%),
-                        linear-gradient(-45deg, transparent 75%, rgba(204,204,204,0.3) 75%);
+      /* Checker gris por defecto */
+      background-image:
+        linear-gradient(45deg, rgba(204,204,204,0.3) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(204,204,204,0.3) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(204,204,204,0.3) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(204,204,204,0.3) 75%);
       background-size: 20px 20px;
-      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
     }
+
+    /* Segundo canvas: verde flúor ligero */
+    #canvas-after {
+      background-image:
+        linear-gradient(45deg, rgba(0,255,153,0.18) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(0,255,153,0.18) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(0,255,153,0.18) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(0,255,153,0.18) 75%);
+    }
+
     .label-canvas {
       text-align: center;
-      margin-top: 5px;
+      margin-top: 6px;
       font-weight: bold;
       color: #00ff99;
     }
-  .controls {
-  width: 320px;
-  background: #1e1e1e;
-  padding: 20px;
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.4);
-}
 
-/* ===== Upload ===== */
-.upload-box {
-  text-align: center;
-}
+    /* ===== Leyenda ===== */
+    .legend {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #00ff99;
+      opacity: 0.8;
+      text-align: center;
+    }
 
-.upload-box input {
-  display: none;
-}
-
-.upload-btn {
-  display: block;
-  padding: 14px;
-  border-radius: 10px;
-  background: #2a2a2a;
-  border: 1px dashed #444;
-  cursor: pointer;
-  font-weight: 600;
-  transition: .2s;
-}
-
-.upload-btn:hover {
-  background: #333;
-  border-color: #666;
-}
-
-/* ===== Options ===== */
-.options {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field label {
-  font-size: 13px;
-  opacity: .8;
-}
-
-select,
-input[type="range"] {
-  width: 100%;
-}
-
-/* ===== Actions ===== */
-.actions {
-  display: flex;
-  gap: 10px;
-}
-
-button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-button.primary {
-  background: #00c853;
-  color: #000;
-}
-
-button.secondary {
-  background: #2a2a2a;
-  color: #fff;
-}
-
-button:hover {
-  filter: brightness(1.1);
-}
-    .app-title {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.app-title small {
-  display: block;
-  margin-top: 6px;
-  opacity: 0.6;
-}
   </style>
 </head>
 <body>
+
 <header class="app-title">
   <h1>TRANSPIFY 2.0</h1>
   <small>by editablesgraficos · Quita color negro o blanco</small>
 </header>
 
-
-  <div class="controls">
+<div class="controls">
 
   <!-- CARGA DE IMAGEN -->
   <div class="upload-box">
-    <label for="upload" class="upload-btn">
-      Cargar imagen
-    </label>
+    <label for="upload" class="upload-btn">Cargar imagen</label>
     <input type="file" id="upload" accept="image/png,image/jpeg">
   </div>
 
-  <!-- OPCIONES -->
+  <!-- OPCIONES: lado a lado -->
   <div class="options">
-
     <div class="field">
       <label for="mode">Modo</label>
       <select id="mode">
@@ -187,12 +190,9 @@ button:hover {
     </div>
 
     <div class="field">
-      <label for="tolerance">
-        Tolerancia <span id="tolValue">20</span>
-      </label>
+      <label for="tolerance">Tolerancia <span id="tolValue">20</span></label>
       <input type="range" id="tolerance" min="0" max="80" value="20">
     </div>
-<br>
   </div>
 
   <!-- ACCIONES -->
@@ -202,7 +202,6 @@ button:hover {
   </div>
 
 </div>
-  
 
 <div class="canvas-container">
   <div>
@@ -215,6 +214,8 @@ button:hover {
   </div>
 </div>
 
+<div class="legend">Fondo verde indica transparencia</div>
+
 <script>
 const upload = document.getElementById('upload');
 const canvasBefore = document.getElementById('canvas-before');
@@ -222,14 +223,19 @@ const ctxBefore = canvasBefore.getContext('2d');
 const canvasAfter = document.getElementById('canvas-after');
 const ctxAfter = canvasAfter.getContext('2d');
 const toleranceInput = document.getElementById('tolerance');
+const tolValue = document.getElementById('tolValue');
 const modeSelect = document.getElementById('mode');
 let img = new Image();
+
+toleranceInput.addEventListener('input', () => {
+  tolValue.textContent = toleranceInput.value;
+});
 
 upload.addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => { img.src = ev.target.result; };
+  reader.onload = ev => img.src = ev.target.result;
   reader.readAsDataURL(file);
 });
 
