@@ -66,12 +66,25 @@
       justify-content: center;
       margin-bottom: 20px;
     }
+    .app-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.app-title small {
+  display: block;
+  margin-top: 6px;
+  opacity: 0.6;
+}
   </style>
 </head>
 <body>
-<p><h1>TRANSPIFY 2.0 </h1><br>by editablesgraficos<br><br>Quita color negro o blanco</p>
+<header class="app-title">
+  <h1>TRANSPIFY 2.0</h1>
+  <small>by editablesgraficos · Quita color negro o blanco</small>
+</header>
 <div class="controls">
-  <input type="file" id="upload" accept="image/png,image/jpeg" /> <br>
+  <input type="file" id="upload" accept="image/png,image/jpeg" /> <br> <br>
   <select id="mode">
     <option value="black">Quitar negro</option>
     <option value="white">Quitar blanco</option>
