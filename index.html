@@ -59,13 +59,93 @@
       font-weight: bold;
       color: #00ff99;
     }
-    .controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
+  .controls {
+  width: 320px;
+  background: #1e1e1e;
+  padding: 20px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+
+/* ===== Upload ===== */
+.upload-box {
+  text-align: center;
+}
+
+.upload-box input {
+  display: none;
+}
+
+.upload-btn {
+  display: block;
+  padding: 14px;
+  border-radius: 10px;
+  background: #2a2a2a;
+  border: 1px dashed #444;
+  cursor: pointer;
+  font-weight: 600;
+  transition: .2s;
+}
+
+.upload-btn:hover {
+  background: #333;
+  border-color: #666;
+}
+
+/* ===== Options ===== */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  opacity: .8;
+}
+
+select,
+input[type="range"] {
+  width: 100%;
+}
+
+/* ===== Actions ===== */
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button.primary {
+  background: #00c853;
+  color: #000;
+}
+
+button.secondary {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
     .app-title {
   text-align: center;
   margin-bottom: 24px;
@@ -83,16 +163,46 @@
   <h1>TRANSPIFY 2.0</h1>
   <small>by editablesgraficos · Quita color negro o blanco</small>
 </header>
-<div class="controls">
-  <input type="file" id="upload" accept="image/png,image/jpeg" /> <br> <br>
-  <select id="mode">
-    <option value="black">Quitar negro</option>
-    <option value="white">Quitar blanco</option>
-  </select>
-  <label>Tolerancia: <input type="range" id="tolerance" min="0" max="80" value="20" /></label>
-  <button id="process">Procesar</button>
-  <button id="download">Descargar PNG</button>
+
+
+  <div class="controls">
+
+  <!-- CARGA DE IMAGEN -->
+  <div class="upload-box">
+    <label for="upload" class="upload-btn">
+      Cargar imagen
+    </label>
+    <input type="file" id="upload" accept="image/png,image/jpeg">
+  </div>
+
+  <!-- OPCIONES -->
+  <div class="options">
+
+    <div class="field">
+      <label for="mode">Modo</label>
+      <select id="mode">
+        <option value="black">Quitar negro</option>
+        <option value="white">Quitar blanco</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="tolerance">
+        Tolerancia <span id="tolValue">20</span>
+      </label>
+      <input type="range" id="tolerance" min="0" max="80" value="20">
+    </div>
+
+  </div>
+
+  <!-- ACCIONES -->
+  <div class="actions">
+    <button id="process" class="primary">Procesar</button>
+    <button id="download" class="secondary">Descargar PNG</button>
+  </div>
+
 </div>
+  
 
 <div class="canvas-container">
   <div>
